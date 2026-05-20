@@ -74,7 +74,7 @@ class PumpspyEntity(CoordinatorEntity[PumpspyCoordinator], RestoreEntity):
     def device_info(self) -> DeviceInfo | None:
         try:
             return DeviceInfo(
-                identifiers={(DOMAIN, str(self.coordinator.data["current"][0]["deviceid"]))},
+                identifiers={(DOMAIN, self.coordinator.data["current"][0]["deviceid"])},
                 name=self.coordinator.data["current"][0]["user_nickname"],
                 manufacturer=MANUFACTURER,
                 model=self.coordinator.data["current"][0]["device_types_name"],
@@ -87,7 +87,7 @@ class PumpspyEntity(CoordinatorEntity[PumpspyCoordinator], RestoreEntity):
             if device_id is None:
                 return None
             return DeviceInfo(
-                identifiers={(DOMAIN, str(device_id))},
+                identifiers={(DOMAIN, device_id)},
                 name=device_info.get("device_name") or "PumpSpy",
                 manufacturer=MANUFACTURER,
             )
