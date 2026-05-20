@@ -242,6 +242,17 @@ class Pumpspy:
             return False
         return device_types.get(self.iddevice_type, {}).get("has_backup", False)
 
+    def device_type(self) -> dict[str, Any]:
+        """Return the PumpSpy endpoint mapping for this device type."""
+        if self.iddevice_type is None:
+            raise PumpSpyDataError("PumpSpy device type is not set")
+        device_type = device_types.get(self.iddevice_type)
+        if device_type is None:
+            raise PumpSpyDataError(
+                f"PumpSpy returned unknown device type {self.iddevice_type}"
+            )
+        return device_type
+
     async def fetch_data(self, intervals):
         """Get all the data from the API."""
         for attempt in range(1, MAX_ATTEMPTS + 1):
@@ -273,7 +284,7 @@ class Pumpspy:
 
     async def fetch_current_data(self, session: aiohttp.ClientSession):
         """Get the current data."""
-        endpoint = device_types[self.iddevice_type]["endpoint"]
+        endpoint = self.device_type()["endpoint"]
         updated_url = f"{BASE_URL}/{endpoint}/deviceid/{self.device_id}"
         LOG.debug("Querying PumpSpy API: %s", updated_url)
         return await self._request_json(
@@ -291,7 +302,7 @@ class Pumpspy:
         motor = "ac" for main, "dc" for backup
         interval = "day", "month", "week"
         """
-        endpoint = device_types[self.iddevice_type]["interval_endpoint"]
+        endpoint = self.device_type()["interval_endpoint"]
         updated_url = f"{BASE_URL}/{endpoint}_cycles/deviceid/{self.device_id}"
         if self.has_backup() is True:
             updated_url = f"{updated_url}/motor/{motor}"

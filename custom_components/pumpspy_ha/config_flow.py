@@ -86,7 +86,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self.pumpspy.set_location(self.locations[0]["lid"])
             try:
                 self.devices = await self.pumpspy.get_devices()
-            except (PumpSpyAuthError, PumpSpyConnectionError, PumpSpyDataError) as err:
+            except PumpSpyAuthError:
+                errors["base"] = "invalid_auth"
+            except (PumpSpyConnectionError, PumpSpyDataError) as err:
                 _LOGGER.warning("Unable to fetch PumpSpy devices: %s", err)
                 errors["base"] = "cannot_connect"
             else:
@@ -98,7 +100,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self.pumpspy.set_location(int(user_input["location"]))
             try:
                 self.devices = await self.pumpspy.get_devices()
-            except (PumpSpyAuthError, PumpSpyConnectionError, PumpSpyDataError) as err:
+            except PumpSpyAuthError:
+                errors["base"] = "invalid_auth"
+            except (PumpSpyConnectionError, PumpSpyDataError) as err:
                 _LOGGER.warning("Unable to fetch PumpSpy devices: %s", err)
                 errors["base"] = "cannot_connect"
             else:
