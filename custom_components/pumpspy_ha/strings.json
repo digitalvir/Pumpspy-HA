@@ -29,6 +29,8 @@
     "error": {
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
       "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
+      "no_devices": "No PumpSpy devices found for this location",
+      "no_locations": "No PumpSpy locations found for this account",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "abort": {

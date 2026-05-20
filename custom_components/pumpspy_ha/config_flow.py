@@ -7,7 +7,7 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant.core import callback
-from .pypumpspy import Pumpspy
+from .pypumpspy import PumpSpyAuthError, PumpSpyConnectionError, PumpSpyDataError, Pumpspy
 
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
@@ -50,12 +50,20 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self.pumpspy = Pumpspy(
                 username=user_input[CONF_USERNAME], password=user_input[CONF_PASSWORD]
             )
-            await self.pumpspy.setup()
-            self.data[CONF_USERNAME] = user_input[CONF_USERNAME]
-            self.data[CONF_PASSWORD] = user_input[CONF_PASSWORD]
-            self.locations = await self.pumpspy.get_locations()
-            if self.locations:
-                return await self.async_step_location()
+            try:
+                await self.pumpspy.setup()
+                self.locations = await self.pumpspy.get_locations()
+            except PumpSpyAuthError:
+                errors["base"] = "invalid_auth"
+            except (PumpSpyConnectionError, PumpSpyDataError) as err:
+                _LOGGER.warning("Unable to connect to PumpSpy during setup: %s", err)
+                errors["base"] = "cannot_connect"
+            else:
+                self.data[CONF_USERNAME] = user_input[CONF_USERNAME]
+                self.data[CONF_PASSWORD] = user_input[CONF_PASSWORD]
+                if self.locations:
+                    return await self.async_step_location()
+                errors["base"] = "no_locations"
 
         data_schema = vol.Schema(
             {
@@ -76,15 +84,27 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # skip this step if there is only 1 location
         if len(self.locations) == 1:
             self.pumpspy.set_location(self.locations[0]["lid"])
-            self.devices = await self.pumpspy.get_devices()
-            if self.devices:
-                return await self.async_step_device()
+            try:
+                self.devices = await self.pumpspy.get_devices()
+            except (PumpSpyAuthError, PumpSpyConnectionError, PumpSpyDataError) as err:
+                _LOGGER.warning("Unable to fetch PumpSpy devices: %s", err)
+                errors["base"] = "cannot_connect"
+            else:
+                if self.devices:
+                    return await self.async_step_device()
+                errors["base"] = "no_devices"
 
         if user_input is not None:
-            self.pumpspy.set_location(self.locations[0]["lid"])
-            self.devices = await self.pumpspy.get_devices()
-            if self.devices:
-                return await self.async_step_device()
+            self.pumpspy.set_location(int(user_input["location"]))
+            try:
+                self.devices = await self.pumpspy.get_devices()
+            except (PumpSpyAuthError, PumpSpyConnectionError, PumpSpyDataError) as err:
+                _LOGGER.warning("Unable to fetch PumpSpy devices: %s", err)
+                errors["base"] = "cannot_connect"
+            else:
+                if self.devices:
+                    return await self.async_step_device()
+                errors["base"] = "no_devices"
 
         options = []
         for location in self.locations:
@@ -114,7 +134,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # skip this step if there is only 1 device
         if len(self.devices) == 1:
             self.data[CONF_DEVICEID] = self.devices[0]["deviceid"]
-            await self.async_set_unique_id(self.devices[0]["deviceid"])
+            await self.async_set_unique_id(str(self.devices[0]["deviceid"]))
             self._abort_if_unique_id_configured()
             self.device_name = self.devices[0]["device_types_name"]
             return await self.async_step_sensors()
@@ -124,7 +144,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             # )
 
         if user_input is not None:
-            await self.async_set_unique_id(user_input["device"])
+            await self.async_set_unique_id(str(user_input["device"]))
             self._abort_if_unique_id_configured()
             device_name = "Unknown"
 
