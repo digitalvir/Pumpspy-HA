@@ -2,16 +2,16 @@
   "domain": "pumpspy_ha",
   "name": "Pumpspy-HA",
   "config_flow": true,
-  "documentation": "https://github.com/Crewski/Pumpspy-HA",
-  "issue_tracker": "https://github.com/Crewski/Pumpspy-HA/issues",
+  "documentation": "https://github.com/digitalvir/Pumpspy-HA",
+  "issue_tracker": "https://github.com/digitalvir/Pumpspy-HA/issues",
   "requirements": ["aiohttp>=3.8.1"],
   "ssdp": [],
   "zeroconf": [],
   "homekit": {},
   "dependencies": [],
   "codeowners": [
-    "@Crewski"
+    "@digitalvir"
   ],
   "iot_class": "cloud_polling",
-  "version": "0.1.4"
+  "version": "0.1.5"
 }

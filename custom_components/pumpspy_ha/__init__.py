@@ -6,7 +6,13 @@ from homeassistant.helpers import entity_registry
 
 from homeassistant.helpers.device_registry import DeviceEntry
 
-from .pypumpspy import InvalidAccessToken, Pumpspy
+from .pypumpspy import (
+    InvalidAccessToken,
+    PumpSpyAuthError,
+    PumpSpyConnectionError,
+    PumpSpyDataError,
+    Pumpspy,
+)
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
@@ -15,8 +21,10 @@ from homeassistant.const import (
     Platform,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
+    UpdateFailed,
 )
 
 
@@ -44,14 +52,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if not entry.options:
         await async_update_options(hass, entry)
 
-    await api.setup()
+    try:
+        await api.setup()
+    except PumpSpyAuthError as err:
+        raise ConfigEntryAuthFailed("PumpSpy authentication failed") from err
+    except (PumpSpyConnectionError, PumpSpyDataError) as err:
+        raise ConfigEntryNotReady(f"PumpSpy setup failed: {err}") from err
+
     coordinator = PumpspyCoordinator(
         hass=hass,
         api=api,
         weekly=entry.options.get(CONF_WEEKLY),
         monthly=entry.options.get(CONF_MONTHLY),
     )
-    await coordinator.async_config_entry_first_refresh()
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except PumpSpyAuthError as err:
+        raise ConfigEntryAuthFailed("PumpSpy authentication failed") from err
+    except (PumpSpyConnectionError, PumpSpyDataError) as err:
+        raise ConfigEntryNotReady(f"PumpSpy initial refresh failed: {err}") from err
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
     # hass.config_entries.async_setup_platforms(entry, PLATFORMS)
@@ -152,14 +171,15 @@ class PumpspyCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self):
         """Fetch data from API endpoint."""
-        # intervals = ["day"]
-        # if self.weekly:
-        #     intervals.append("week")
-        # if self.monthly:
-        #     intervals.append("month")
         try:
-            return await self.api.fetch_data(intervals=self.intervals)
-        except InvalidAccessToken:
+            data = await self.api.fetch_data(intervals=self.intervals)
+            if not data or not data.get("current"):
+                raise UpdateFailed("PumpSpy returned no current data")
+            return data
+        except InvalidAccessToken as err:
             _LOGGER.info("Access token expired, will try again")
-        except ConnectionError as err:
-            _LOGGER.error(err)
+            raise UpdateFailed("PumpSpy access token expired") from err
+        except PumpSpyAuthError as err:
+            raise UpdateFailed("PumpSpy authentication failed") from err
+        except (PumpSpyConnectionError, PumpSpyDataError) as err:
+            raise UpdateFailed(f"PumpSpy update failed: {err}") from err

@@ -6,6 +6,8 @@
     "error": {
       "cannot_connect": "Failed to connect",
       "invalid_auth": "Invalid authentication",
+      "no_devices": "No PumpSpy devices found for this location",
+      "no_locations": "No PumpSpy locations found for this account",
       "unknown": "Unexpected error"
     },
     "step": {
