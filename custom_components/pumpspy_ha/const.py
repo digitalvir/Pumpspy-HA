@@ -4,7 +4,7 @@
 DOMAIN = "pumpspy_ha"
 MANUFACTURER = "Pumpspy"
 
-BASE_URL = "http://www.pumpspy.com:8081"
+BASE_URL = "http://www.pumpspy.com:8082"
 TOKEN_URL = "/oauth/token"
 UID_URL = "/users/email/"
 LOCATIONS_URL = "/locations/uid/"

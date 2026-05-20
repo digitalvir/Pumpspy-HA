@@ -13,7 +13,7 @@ AUTH_USERNAME = "IOS"
 AUTH_PASSWORD = "secret"
 
 # LIST OF ENDPOINTS
-BASE_URL = "http://www.pumpspy.com:8081"
+BASE_URL = "http://www.pumpspy.com:8082"
 TOKEN_URL = "/oauth/token"
 UID_URL = "/users/email/"
 LOCATIONS_URL = "/locations/uid/"
